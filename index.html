@@ -2,823 +2,231 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Генератор Определений о Принятии</title>
-    <!-- mammoth.js для чтения текста из DOCX -->
-    <script src="https://unpkg.com/mammoth@1.6.0/mammoth.browser.min.js"></script>
-    <!-- PizZip и Docxtemplater для генерации DOCX -->
-    <script src="https://unpkg.com/pizzip@3.1.4/dist/pizzip.js"></script>
-    <script src="https://unpkg.com/docxtemplater@3.37.11/build/docxtemplater.js"></script>
-    <!-- FileSaver для скачивания файлов -->
+    <title>Судебный Помощник v4.2 (АС ХМАО)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pizzip/3.1.4/pizzip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.42.1/docxtemplater.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --primary: #4F46E5;
-            --primary-hover: #4338CA;
-            --bg-color: #0F172A;
-            --card-bg: rgba(30, 41, 59, 0.7);
-            --text-main: #F8FAFC;
-            --text-muted: #94A3B8;
-            --border-color: rgba(255, 255, 255, 0.1);
-            --success: #10B981;
-            --error: #EF4444;
-            --accent: #818CF8;
-        }
-
-        * { box-sizing: border-box; }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background: radial-gradient(circle at 50% -20%, #1E1B4B, var(--bg-color));
-            color: var(--text-main);
-            min-height: 100vh;
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            padding: 30px 20px 60px;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 780px;
-            background: var(--card-bg);
-            backdrop-filter: blur(16px);
-            border: 1px solid var(--border-color);
-            border-radius: 24px;
-            padding: 48px 48px 40px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            animation: fadeIn 0.5s ease-out;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .logo-area {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 14px;
-            margin-bottom: 8px;
-        }
-
-        .logo-icon {
-            width: 44px;
-            height: 44px;
-            background: linear-gradient(135deg, #4F46E5, #818CF8);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        h1 {
-            text-align: center;
-            font-size: 26px;
-            font-weight: 700;
-            margin: 0;
-            background: linear-gradient(135deg, #A5B4FC, #818CF8);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        p.subtitle {
-            text-align: center;
-            color: var(--text-muted);
-            margin: 10px 0 36px;
-            font-size: 14px;
-        }
-
-        .divider {
-            height: 1px;
-            background: var(--border-color);
-            margin: 28px 0;
-        }
-
-        .section-title {
-            font-size: 11px;
-            font-weight: 600;
-            letter-spacing: 1.2px;
-            text-transform: uppercase;
-            color: var(--text-muted);
-            margin-bottom: 16px;
-        }
-
-        /* Selector Cards for Procedure / Variant */
-        .selector-grid {
-            display: grid;
-            gap: 12px;
-        }
-
-        .selector-grid.two-col {
-            grid-template-columns: 1fr 1fr;
-        }
-
-        .selector-grid.four-col {
-            grid-template-columns: 1fr 1fr 1fr 1fr;
-        }
-
-        .selector-card {
-            padding: 14px 16px;
-            border-radius: 12px;
-            border: 1.5px solid var(--border-color);
-            background: rgba(15, 23, 42, 0.4);
-            cursor: pointer;
-            transition: all 0.2s;
-            text-align: center;
-        }
-
-        .selector-card:hover {
-            border-color: var(--accent);
-            background: rgba(79, 70, 229, 0.08);
-        }
-
-        .selector-card.active {
-            border-color: var(--primary);
-            background: rgba(79, 70, 229, 0.18);
-            box-shadow: 0 0 0 1px var(--primary);
-        }
-
-        .selector-card .card-label {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text-main);
-            margin-bottom: 4px;
-        }
-
-        .selector-card .card-desc {
-            font-size: 11px;
-            color: var(--text-muted);
-            line-height: 1.4;
-        }
-
-        .selector-card.active .card-label {
-            color: #A5B4FC;
-        }
-
-        /* File Drop */
-        .form-group {
-            margin-bottom: 0;
-        }
-
-        label.field-label {
-            display: block;
-            margin-bottom: 8px;
-            font-size: 13px;
-            font-weight: 500;
-            color: #CBD5E1;
-        }
-
-        .file-drop-area {
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            padding: 24px 20px;
-            border: 2px dashed rgba(165, 180, 252, 0.25);
-            border-radius: 14px;
-            transition: all 0.3s;
-            background: rgba(30, 41, 59, 0.3);
-            cursor: pointer;
-            text-align: center;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .file-drop-area:hover, .file-drop-area.hover {
-            background: rgba(79, 70, 229, 0.1);
-            border-color: var(--primary);
-        }
-
-        .file-drop-area svg {
-            width: 36px;
-            height: 36px;
-            color: var(--accent);
-        }
-
-        .file-drop-area span.drop-title {
-            color: #A5B4FC;
-            font-weight: 500;
-            font-size: 14px;
-        }
-
-        .file-drop-area .smalltxt {
-            color: var(--text-muted);
-            font-size: 12px;
-        }
-
-        .file-msg {
-            margin-top: 8px;
-            font-size: 13px;
-            color: #34D399;
-            font-weight: 500;
-            min-height: 20px;
-        }
-
-        input[type="file"] {
-            position: absolute;
-            left: 0;
-            top: 0;
-            height: 100%;
-            width: 100%;
-            cursor: pointer;
-            opacity: 0;
-        }
-
-        /* Preview Panel */
-        .preview-panel {
-            background: rgba(15, 23, 42, 0.5);
-            border: 1px solid var(--border-color);
-            border-radius: 14px;
-            padding: 20px;
-            font-size: 13px;
-            color: var(--text-muted);
-            min-height: 80px;
-            display: none;
-        }
-
-        .preview-panel.visible {
-            display: block;
-            animation: fadeIn 0.3s ease-out;
-        }
-
-        .preview-panel .preview-row {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 10px;
-            line-height: 1.5;
-        }
-
-        .preview-panel .preview-key {
-            color: var(--accent);
-            font-weight: 600;
-            min-width: 170px;
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            padding-top: 2px;
-        }
-
-        .preview-panel .preview-val {
-            color: var(--text-main);
-            flex: 1;
-        }
-
-        /* Generate Button */
-        .generate-btn {
-            width: 100%;
-            padding: 16px;
-            border-radius: 14px;
-            border: none;
-            background: linear-gradient(135deg, var(--primary), #6366F1);
-            color: white;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 10px;
-            margin-top: 8px;
-        }
-
-        .generate-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(79, 70, 229, 0.6);
-        }
-
-        .generate-btn:disabled {
-            background: #334155;
-            box-shadow: none;
-            cursor: not-allowed;
-            transform: none;
-            color: #64748B;
-        }
-
-        .spinner {
-            border: 3px solid rgba(255,255,255,0.3);
-            border-radius: 50%;
-            border-top: 3px solid white;
-            width: 18px;
-            height: 18px;
-            animation: spin 1s linear infinite;
-            flex-shrink: 0;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .status-box {
-            margin-top: 16px;
-            padding: 14px 16px;
-            border-radius: 12px;
-            background: rgba(15, 23, 42, 0.5);
-            border: 1px solid var(--border-color);
-            display: none;
-            font-size: 14px;
-            color: #A5B4FC;
-        }
-
-        .status-box.visible { display: block; animation: fadeIn 0.3s ease-out; }
-        .status-box.error { border-color: var(--error); color: #FCA5A5; background: rgba(239,68,68,0.1); }
-        .status-box.success { border-color: var(--success); color: #6EE7B7; background: rgba(16,185,129,0.1); }
-
-        /* Info callout */
-        .info-callout {
-            background: rgba(79, 70, 229, 0.1);
-            border: 1px solid rgba(129, 140, 248, 0.3);
-            border-radius: 10px;
-            padding: 12px 14px;
-            font-size: 12px;
-            color: #A5B4FC;
-            line-height: 1.6;
-            margin-top: 12px;
-        }
-
-        @media (max-width: 560px) {
-            .container { padding: 28px 20px; }
-            .selector-grid.two-col { grid-template-columns: 1fr; }
-            .selector-grid.four-col { grid-template-columns: 1fr 1fr; }
-        }
+        :root { --primary: #1e40af; --bg: #f1f5f9; --panel: #ffffff; --border: #cbd5e1; }
+        body { font-family: 'Segoe UI', system-ui; background: var(--bg); margin: 0; padding: 20px; color: #0f172a; }
+        .container { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 350px 1fr; gap: 20px; }
+        .panel { background: var(--panel); padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid var(--border); }
+        h2 { font-size: 1.1em; color: var(--primary); margin: 0 0 15px 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-size: 0.8em; font-weight: 700; margin-bottom: 4px; color: #475569; }
+        .btn { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: 600; }
+        .preview-box { font-size: 0.9em; background: #fff; padding: 10px; border-radius: 4px; border: 1px solid var(--border); min-height: 40px; overflow-y: auto; white-space: pre-wrap; outline: none; }
+        .variant-group { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 15px; }
+        .variant-btn { border: 1px solid var(--border); background: white; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 0.8em; }
+        .variant-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .data-grid { display: flex; flex-direction: column; gap: 12px; }
     </style>
 </head>
 <body>
-<div class="container">
+    <div class="container">
+        <div class="panel">
+            <h2>Настройки</h2>
+            <div class="form-group"><label>1. Шаблон (.docx)</label><input type="file" id="templateFile" accept=".docx"></div>
+            <div class="form-group"><label>2. Источник (Решение/Опр.)</label><input type="file" id="sourceFile" accept=".docx"></div>
+            <div class="form-group">
+                <label>Вариант требования:</label>
+                <div class="variant-group">
+                    <button class="variant-btn active" data-val="v1">V1 (ГП)</button>
+                    <button class="variant-btn" data-val="v2">V2 (Без ГП)</button>
+                    <button class="variant-btn" data-val="v3">V3 (ФНС)</button>
+                    <button class="variant-btn" data-val="v4">V4 (Залог)</button>
+                </div>
+            </div>
+            <button class="btn" id="generateBtn">Создать документ</button>
+        </div>
 
-    <div class="logo-area">
-        <div class="logo-icon">
-            <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="1.8">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-            </svg>
+        <div class="panel">
+            <h2>Данные для документа</h2>
+            <div class="data-grid">
+                <div class="form-group">
+                    <label>Номер дела</label>
+                    <div class="preview-box" id="field_case_number" contenteditable="true"></div>
+                </div>
+                <div class="form-group">
+                    <label>Дата документа</label>
+                    <div class="preview-box" id="field_doc_date" contenteditable="true"></div>
+                </div>
+                <div class="form-group">
+                    <label>ФИО Должника</label>
+                    <div class="preview-box" id="field_debtor_fio" contenteditable="true"></div>
+                </div>
+                <div class="form-group">
+                    <label>Данные должника (ИНН, СНИЛС, Адрес)</label>
+                    <div class="preview-box" id="field_debtor_info" contenteditable="true"></div>
+                </div>
+                <div class="form-group">
+                    <label>Заявитель / СРО + Управляющий</label>
+                    <div class="preview-box" id="field_sro_name" contenteditable="true"></div>
+                </div>
+                <div class="form-group">
+                    <label>Сумма задолженности (для V4)</label>
+                    <div class="preview-box" id="field_amount_debt" contenteditable="true"></div>
+                </div>
+                <div class="form-group">
+                    <label>Сумма госпошлины (для V1)</label>
+                    <div class="preview-box" id="field_amount_gp" contenteditable="true"></div>
+                </div>
+                <div class="form-group">
+                    <label>Блок "УСТАНОВИЛ"</label>
+                    <div class="preview-box" id="field_established" contenteditable="true"></div>
+                </div>
+                <div class="form-group">
+                    <label>Текст варианта ({variant_logic})</label>
+                    <div class="preview-box" id="field_variant_logic" contenteditable="true" style="background: #f8fafc;"></div>
+                </div>
+            </div>
         </div>
-        <h1>Генератор Определений</h1>
-    </div>
-    <p class="subtitle">Автоматический перенос данных из <b>Решения</b> в <b>Определение о принятии</b> &nbsp;·&nbsp; Работает полностью оффлайн</p>
-
-    <!-- STEP 1: Choose Procedure -->
-    <div class="section-title">1. Выберите процедуру</div>
-    <div class="selector-grid two-col" id="procedureGrid">
-        <div class="selector-card active" data-value="realizatsia" onclick="selectProcedure(this)">
-            <div class="card-label">⚖️ Реализация</div>
-            <div class="card-desc">Решение о реализации имущества должника</div>
-        </div>
-        <div class="selector-card" data-value="restrukturia" onclick="selectProcedure(this)">
-            <div class="card-label">📋 Реструктуризация</div>
-            <div class="card-desc">Определение о реструктуризации долгов</div>
-        </div>
-    </div>
-
-    <div class="divider"></div>
-
-    <!-- STEP 2: Choose Variant -->
-    <div class="section-title">2. Выберите вид определения</div>
-    <div class="selector-grid four-col" id="variantGrid">
-        <div class="selector-card active" data-value="v1" onclick="selectVariant(this)">
-            <div class="card-label">В1</div>
-            <div class="card-desc">С гос­пошлиной (ГП)</div>
-        </div>
-        <div class="selector-card" data-value="v2" onclick="selectVariant(this)">
-            <div class="card-label">В2</div>
-            <div class="card-desc">Без государственной пошлины</div>
-        </div>
-        <div class="selector-card" data-value="v3" onclick="selectVariant(this)">
-            <div class="card-label">В3</div>
-            <div class="card-desc">ФНС (уполно­моченный орган)</div>
-        </div>
-        <div class="selector-card" data-value="v4" onclick="selectVariant(this)">
-            <div class="card-label">В4</div>
-            <div class="card-desc">Залог квартиры</div>
-        </div>
-    </div>
-
-    <div class="divider"></div>
-
-    <!-- STEP 3: Upload Source DOCX -->
-    <div class="section-title">3. Загрузите исходный документ</div>
-    <div class="form-group">
-        <label class="field-label" id="sourceLabel">Решение суда (.docx)</label>
-        <div class="file-drop-area" id="sourceDropArea">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-            </svg>
-            <span class="drop-title">Выберите или перетащите DOCX файл</span>
-            <div class="smalltxt">Поддерживаются файлы Microsoft Word (.docx)</div>
-            <input type="file" id="sourceDoc" accept=".docx">
-        </div>
-        <div id="sourceMsg" class="file-msg"></div>
     </div>
 
-    <!-- Preview of extracted data -->
-    <div id="previewPanel" class="preview-panel"></div>
-    <div class="info-callout" id="infoCallout" style="display:none">
-        ℹ️ Проверьте извлечённые данные выше. Если что-то не так — документ может иметь нестандартную структуру. Данные можно будет скорректировать в будущих версиях.
-    </div>
+    <script>
+        let templateBinary = null;
+        let currentVariant = 'v1';
+        let extractedData = {};
 
-    <div class="divider"></div>
+        const monthsMap = {
+            "января": "01", "февраля": "02", "марта": "03", "апреля": "04",
+            "мая": "05", "июня": "06", "июля": "07", "августа": "08",
+            "сентября": "09", "октября": "10", "ноября": "11", "декабря": "12"
+        };
 
-    <!-- Generate Button -->
-    <button class="generate-btn" id="generateBtn" onclick="runPipeline()">
-        <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-        </svg>
-        Сгенерировать Определение о принятии
-    </button>
-    <div id="statusBox" class="status-box"></div>
+        document.querySelectorAll('.variant-btn').forEach(btn => {
+            btn.onclick = () => {
+                document.querySelectorAll('.variant-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentVariant = btn.dataset.val;
+                updateVariantLogic();
+            };
+        });
 
-</div>
+        document.getElementById('templateFile').onchange = (e) => {
+            const reader = new FileReader();
+            reader.onload = (event) => templateBinary = event.target.result;
+            reader.readAsArrayBuffer(e.target.files[0]);
+        };
 
-<script>
-// =================== STATE ===================
-let sourceFile = null;
-let extractedData = null;
-let selectedProcedure = 'realizatsia';
-let selectedVariant = 'v1';
+        document.getElementById('sourceFile').onchange = (e) => {
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                const result = await mammoth.extractRawText({ arrayBuffer: event.target.result });
+                parseDocument(result.value);
+            };
+            reader.readAsArrayBuffer(e.target.files[0]);
+        };
 
-// =================== VARIANT TEXT BLOCKS ===================
-const VARIANT_TEXT = {
-    realizatsia: {
-        v1: `Кредитором оплачена государственная пошлина в размере _____ руб.`,
-        v2: `Настоящее требование государственной пошлиной не облагается, так как подтверждено вступившим в законную силу судебным актом.`,
-        v3: `В соответствии со ст. 333.37 НК РФ уполномоченный орган освобожден от уплаты государственной пошлины.`,
-        v4: `Требования в размере ____________ руб. по договору № _____ от _________, кредитор просит признать обеспеченными залогом имущества - ____________.\nКредитором оплачена государственная пошлина в размере _____ руб.\nВ ситуации, когда обеспеченное залогом обязательство надлежащим образом исполняется третьим лицом (или имеется лицо, готовое взять на себя обязанность по его исполнению), суд предлагает лицам, участвующим в деле заключить мировое соглашение (разработать локальный план реструктуризации в случае необоснованного уклонения кредитора от заключения мирового соглашения) в отношении единственного жилья, по условиям которого взыскание на данное имущество не обращается, при этом залогодатель не освобождается от исполнения обязательства перед залоговым кредитором по завершении процедуры банкротства (ипотека сохраняется без применения правил пункта 3 статьи 213.28 Закона о банкротстве).`,
-    },
-    restrukturia: {
-        v1: `Кредитором оплачена государственная пошлина в размере _____ руб.`,
-        v2: `Настоящее требование государственной пошлиной не облагается, так как подтверждено вступившим в законную силу судебным актом.`,
-        v3: `В соответствии со ст. 333.37 НК РФ уполномоченный орган освобожден от уплаты государственной пошлины.`,
-        v4: `Требования в размере ____________ руб. по договору № _____ от _________, кредитор просит признать обеспеченными залогом имущества - ____________.\nКредитором оплачена государственная пошлина в размере _____ руб.\nВ ситуации, когда обеспеченное залогом обязательство надлежащим образом исполняется третьим лицом (или имеется лицо, готовое взять на себя обязанность по его исполнению), суд предлагает лицам, участвующим в деле заключить мировое соглашение (разработать локальный план реструктуризации в случае необоснованного уклонения кредитора от заключения мирового соглашения) в отношении единственного жилья, по условиям которого взыскание на данное имущество не обращается, при этом залогодатель не освобождается от исполнения обязательства перед залоговым кредитором по завершении процедуры банкротства (ипотека сохраняется без применения правил пункта 3 статьи 213.28 Закона о банкротстве).`,
-    }
-};
+        function parseDocument(text) {
+            const cleanText = text.replace(/\s+/g, ' ').trim();
+            const data = {};
 
-// =================== UI SELECTORS ===================
-function selectProcedure(card) {
-    document.querySelectorAll('#procedureGrid .selector-card').forEach(c => c.classList.remove('active'));
-    card.classList.add('active');
-    selectedProcedure = card.dataset.value;
-    const label = document.getElementById('sourceLabel');
-    label.textContent = selectedProcedure === 'realizatsia'
-        ? 'Решение суда о реализации (.docx)'
-        : 'Определение суда о реструктуризации (.docx)';
-    if (extractedData) updatePreview(extractedData);
-}
+            // 1. Номер дела
+            const caseMatch = cleanText.match(/([АA]75-\d+(?:-\d+)?\/\d{4})/i);
+            data.case_number = caseMatch ? caseMatch[1] : "________________";
 
-function selectVariant(card) {
-    document.querySelectorAll('#variantGrid .selector-card').forEach(c => c.classList.remove('active'));
-    card.classList.add('active');
-    selectedVariant = card.dataset.value;
-}
+            // 2. Дата
+            const dateMatch = cleanText.match(/(?:«?)(\d{1,2})(?:»?)\s+([а-яё]+)\s+(\d{4})/i);
+            if (dateMatch) {
+                const m = monthsMap[dateMatch[2].toLowerCase()] || "00";
+                data.doc_date = `${dateMatch[1].padStart(2, '0')}.${m}.${dateMatch[3]}`;
+            } else {
+                data.doc_date = "________";
+            }
 
-// =================== FILE INPUT ===================
-document.getElementById('sourceDoc').addEventListener('change', async function(e) {
-    sourceFile = e.target.files[0];
-    if (!sourceFile) return;
-    document.getElementById('sourceMsg').textContent = '⏳ Читаю документ...';
-    try {
-        const text = await extractTextFromDOCX(sourceFile);
-        extractedData = extractFields(text, selectedProcedure);
-        updatePreview(extractedData);
-        document.getElementById('sourceMsg').textContent = '✅ Загружен: ' + sourceFile.name;
-        document.getElementById('infoCallout').style.display = 'block';
-    } catch(err) {
-        document.getElementById('sourceMsg').textContent = '❌ Ошибка чтения файла: ' + err.message;
-    }
-});
+            // 3. Должник
+            const debtorMatch = cleanText.match(/([А-ЯЁ][а-яё\-]+\s+[А-ЯЁ][а-яё\-]+\s+[А-ЯЁ][а-яё\-]+)\s*\(([\s\S]+?)\)/i);
+            if (debtorMatch) {
+                data.debtor_fio = debtorMatch[1].trim();
+                data.debtor_info = debtorMatch[2].trim();
+            } else {
+                data.debtor_fio = "НЕ НАЙДЕНО";
+                data.debtor_info = "НЕ НАЙДЕНО";
+            }
 
-// Drag and drop support
-const dropArea = document.getElementById('sourceDropArea');
-['dragenter','dragover'].forEach(ev => dropArea.addEventListener(ev, e => { e.preventDefault(); dropArea.classList.add('hover'); }));
-['dragleave','drop'].forEach(ev => dropArea.addEventListener(ev, e => { e.preventDefault(); dropArea.classList.remove('hover'); }));
-dropArea.addEventListener('drop', async e => {
-    const file = e.dataTransfer.files[0];
-    if (!file || !file.name.endsWith('.docx')) {
-        updateStatus('Поддерживаются только файлы .docx', 'error');
-        return;
-    }
-    sourceFile = file;
-    document.getElementById('sourceMsg').textContent = '⏳ Читаю документ...';
-    try {
-        const text = await extractTextFromDOCX(sourceFile);
-        extractedData = extractFields(text, selectedProcedure);
-        updatePreview(extractedData);
-        document.getElementById('sourceMsg').textContent = '✅ Загружен: ' + sourceFile.name;
-        document.getElementById('infoCallout').style.display = 'block';
-    } catch(err) {
-        document.getElementById('sourceMsg').textContent = '❌ Ошибка чтения файла: ' + err.message;
-    }
-});
+            // 4. СРО + Управляющий
+            const sroMatch = cleanText.match(/(?:Ассоциации|Союза|СРО)\s+([«"'][^»"']+?[»"'])/i);
+            if (sroMatch) {
+                const sroName = sroMatch[0];
+                const afterSro = cleanText.substring(cleanText.indexOf(sroName) + sroName.length).trim();
+                const managerMatch = afterSro.match(/([А-ЯЁ][а-яё\-]+\s+[А-ЯЁ][а-яё\-]+\s+[А-ЯЁ][а-яё\-]+)/);
+                data.sro_name = managerMatch ? `${sroName} ${managerMatch[1]}` : sroName;
+            } else {
+                data.sro_name = "________________";
+            }
 
-// =================== DOCX TEXT EXTRACTION ===================
-async function extractTextFromDOCX(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = async function(e) {
+            // 5. Суммы (Долг и Госпошлина отдельно)
+            const debtMatch = cleanText.match(/задолженности\s+в\s+размере\s+([\d\s,]+)\s+руб/i) || cleanText.match(/размере\s+([\d\s,]+)\s+руб/i);
+            data.amount_debt = debtMatch ? debtMatch[1].trim() : "0,00";
+
+            const gpMatch = cleanText.match(/государственная\s+пошлина\s+в\s+размере\s+([\d\s,]+)\s+руб/i) || cleanText.match(/оплачена\s+госпошлина\s+([\d\s,]+)\s+руб/i) || cleanText.match(/пошлина\s+в\s+размере\s+([\d\s,]+)\s+руб/i);
+            data.amount_gp = gpMatch ? gpMatch[1].trim() : "0,00";
+
+            // 6. Установил
+            const estMatch = cleanText.match(/установил:\s*([\s\S]+?банкротом\)\.?)/i);
+            data.established = estMatch ? estMatch[1].trim() : "________________";
+
+            extractedData = data;
+            fillUI();
+        }
+
+        function fillUI() {
+            document.getElementById('field_case_number').innerText = extractedData.case_number;
+            document.getElementById('field_doc_date').innerText = extractedData.doc_date;
+            document.getElementById('field_debtor_fio').innerText = extractedData.debtor_fio;
+            document.getElementById('field_debtor_info').innerText = extractedData.debtor_info;
+            document.getElementById('field_sro_name').innerText = extractedData.sro_name;
+            document.getElementById('field_amount_debt').innerText = extractedData.amount_debt;
+            document.getElementById('field_amount_gp').innerText = extractedData.amount_gp;
+            document.getElementById('field_established').innerText = extractedData.established;
+            updateVariantLogic();
+        }
+
+        function updateVariantLogic() {
+            const amountDebt = document.getElementById('field_amount_debt').innerText;
+            const amountGP = document.getElementById('field_amount_gp').innerText;
+            let text = "";
+            switch(currentVariant) {
+                case 'v1': text = `Кредитором оплачена государственная пошлина в размере ${amountGP} руб.`; break;
+                case 'v2': text = `Настоящее требование государственной пошлиной не облагается, так как подтверждено вступившим в законную силу судебным актом.`; break;
+                case 'v3': text = `В соответствии со ст. 333.37 НК РФ уполномоченный орган освобожден от уплаты государственной пошлины.`; break;
+                case 'v4': text = `Требования в размере ${amountDebt} руб. признать обеспеченными залогом имущества.`; break;
+            }
+            document.getElementById('field_variant_logic').innerText = text;
+        }
+
+        document.getElementById('generateBtn').onclick = () => {
+            if (!templateBinary) return alert("Загрузите шаблон!");
+            
+            // Проверка наличия библиотек
+            const PizZipLib = window.PizZip;
+            const DocxtemplaterLib = window.docxtemplater;
+
+            if (!PizZipLib) return alert("Ошибка: библиотека PizZip не загружена. Проверьте интернет-соединение.");
+            if (!DocxtemplaterLib) return alert("Ошибка: библиотека docxtemplater не загружена.");
+
             try {
-                const arrayBuffer = e.target.result;
-                const result = await mammoth.extractRawText({ arrayBuffer });
-                resolve(result.value);
-            } catch(err) {
-                reject(err);
+                const zip = new PizZipLib(templateBinary);
+                const doc = new DocxtemplaterLib(zip, { paragraphLoop: true, linebreaks: true });
+                const finalData = {
+                    case_number: document.getElementById('field_case_number').innerText,
+                    doc_date: document.getElementById('field_doc_date').innerText,
+                    debtor_fio: document.getElementById('field_debtor_fio').innerText,
+                    debtor_info: document.getElementById('field_debtor_info').innerText,
+                    sro_name: document.getElementById('field_sro_name').innerText,
+                    amount: currentVariant === 'v4' ? document.getElementById('field_amount_debt').innerText : document.getElementById('field_amount_gp').innerText,
+                    established: document.getElementById('field_established').innerText,
+                    variant_logic: document.getElementById('field_variant_logic').innerText
+                };
+                doc.render(finalData);
+                const out = doc.getZip().generate({ type: "blob" });
+                saveAs(out, `Определение_${finalData.case_number}.docx`);
+            } catch (e) {
+                alert("Ошибка: " + e.message);
             }
         };
-        reader.onerror = reject;
-        reader.readAsArrayBuffer(file);
-    });
-}
-
-// =================== FIELD EXTRACTION ===================
-function extractFields(text, procedure) {
-    const normalized = text.replace(/\s+/g, ' ').trim();
-
-    let case_number = '';
-    let fio = '';
-    let address = '';
-    let ustanovil = '';
-    let decision_date = '';
-    let fin_manager = '';
-    let creditor_block = ''; // абзац с кредитором (поступило заявление...)
-
-    // --- Номер дела ---
-    const caseMatch = normalized.match(/(А\s*\d+\s*-\s*\d+(?:\s*\/\s*\d+)?)/i);
-    if (caseMatch) {
-        case_number = caseMatch[1].replace(/\s+/g, '');
-    }
-
-    // --- ФИО и адрес должника ---
-    // Обычно после "(банкротстве)" или после "дела о банкротстве"
-    const debtorMatch = normalized.match(/банкротстве\)?\s+([А-ЯЁ][а-яё]+ [А-ЯЁ][а-яё]+ [А-ЯЁ][а-яё]+)\s*,?\s*(\d{6}[^,]+(?:,\s*[^,]{3,50}){2,6})/i);
-    if (debtorMatch) {
-        fio = debtorMatch[1].trim();
-        address = debtorMatch[2].trim();
-    } else {
-        // Запасной вариант: ищем ФИО и адрес после "(несостоятельности" или просто ФИО после "должник"
-        const fioMatch = normalized.match(/(?:должник[а-я]*|банкрот[а-я]*)[:\s]+([А-ЯЁ][а-яё]+\s+[А-ЯЁ][а-яё]+\s+[А-ЯЁ][а-яё]+)/i);
-        if (fioMatch) fio = fioMatch[1].trim();
-        const addrMatch = normalized.match(/(\d{6},\s*[^,]{5,80}(?:,\s*[^,]{3,50}){1,5}\s*(?:,\s*д\.\s*[\w\-]+(?:\s*,\s*кв\.\s*\d+)?)?)/i);
-        if (addrMatch) address = addrMatch[1].trim();
-    }
-
-    // --- Дата решения / определения ---
-    // Формат: «00» месяц 0000 г. -> 00.00.0000
-    const MONTHS = {
-        'января':'01','февраля':'02','марта':'03','апреля':'04',
-        'мая':'05','июня':'06','июля':'07','августа':'08',
-        'сентября':'09','октября':'10','ноября':'11','декабря':'12'
-    };
-    const dateRaw = normalized.match(/[«"]?\s*(\d{1,2})\s*[»"]?\s*(января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря)\s*(\d{4})\s*г/i);
-    if (dateRaw) {
-        const day = dateRaw[1].padStart(2,'0');
-        const month = MONTHS[dateRaw[2].toLowerCase()] || '00';
-        const year = dateRaw[3];
-        decision_date = `${day}.${month}.${year}`;
-    }
-
-    // --- Абзац "установил" ---
-    const ustanovilMatch = text.match(/[Уу]становил[:\s]*\n?([\s\S]{10,1200}?)(?:\n\s*\n|\n[А-ЯЁ][а-яё]+ суд|Руководствуясь)/i);
-    if (ustanovilMatch) {
-        ustanovil = ustanovilMatch[1].replace(/\s+/g, ' ').trim();
-    } else {
-        // Запасной: берём текст после "установил" до "Руководствуясь"
-        const ustIdx = normalized.toLowerCase().indexOf('установил');
-        if (ustIdx !== -1) {
-            const rukovIdx = normalized.toLowerCase().indexOf('руководствуясь', ustIdx);
-            const endIdx = rukovIdx !== -1 ? rukovIdx : ustIdx + 600;
-            ustanovil = normalized.substring(ustIdx + 9, endIdx).trim().substring(0, 800);
-        }
-    }
-
-    // --- Финансовый управляющий ---
-    // Ищем "утвердить финансовым управляющим" или "финансовый управляющий"
-    const finMgrMatch = normalized.match(/[Уу]твердить\s+(?:финансов(?:ым|ого|ому)\s+управляющ[а-яё]+|финансов[а-яё]+\s+управляющ[а-яё]+)\s+([А-ЯЁ][а-яё]+ [А-ЯЁ][а-яё]+ [А-ЯЁ][а-яё]+)[,\s]+([^.]{10,200}\.)/i);
-    if (finMgrMatch) {
-        fin_manager = finMgrMatch[1].trim() + ', ' + finMgrMatch[2].trim();
-    } else {
-        const finMgrMatch2 = normalized.match(/финансов[а-яё]+\s+управляющ[а-яё]+\s+([А-ЯЁ][а-яё]+ [А-ЯЁ][а-яё]+ [А-ЯЁ][а-яё]+)/i);
-        if (finMgrMatch2) fin_manager = finMgrMatch2[1].trim();
-    }
-
-    // --- Абзац с кредитором (поступило заявление...) ---
-    // Это берётся целиком из Решения - первый абзац после "поступило заявление"
-    const creditorIdx = normalized.toLowerCase().indexOf('поступило заявление');
-    if (creditorIdx !== -1) {
-        // Берём до следующей пустой строки или до "Руководствуясь"
-        let endSearch = normalized.indexOf('Руководствуясь', creditorIdx);
-        if (endSearch === -1 || endSearch > creditorIdx + 1500) endSearch = creditorIdx + 1000;
-        let rawBlock = normalized.substring(creditorIdx, endSearch).trim();
-        // обрезаем у первой точки с запятой или ".", если после неё идёт новый абзац
-        const dotIdx = rawBlock.search(/\.\s+[А-ЯЁ]/);
-        if (dotIdx !== -1 && dotIdx < 900) rawBlock = rawBlock.substring(0, dotIdx + 1);
-        creditor_block = rawBlock;
-    }
-
-    return { case_number, fio, address, ustanovil, decision_date, fin_manager, creditor_block };
-}
-
-// =================== PREVIEW ===================
-function updatePreview(data) {
-    const panel = document.getElementById('previewPanel');
-    const rows = [
-        ['Номер дела', data.case_number || '—'],
-        ['ФИО должника', data.fio || '—'],
-        ['Адрес должника', data.address || '—'],
-        ['Дата документа', data.decision_date || '—'],
-        ['Абзац «установил»', data.ustanovil ? data.ustanovil.substring(0, 180) + (data.ustanovil.length > 180 ? '…' : '') : '—'],
-        ['Абзац с кредитором', data.creditor_block ? data.creditor_block.substring(0, 180) + (data.creditor_block.length > 180 ? '…' : '') : '—'],
-        ['Финансовый управляющий', data.fin_manager || '(не найден — будет отмечено)'],
-    ];
-    panel.innerHTML = rows.map(([k,v]) =>
-        `<div class="preview-row"><span class="preview-key">${k}</span><span class="preview-val">${v}</span></div>`
-    ).join('');
-    panel.classList.add('visible');
-}
-
-// =================== DOCX GENERATION ===================
-function updateStatus(text, type = 'info') {
-    const box = document.getElementById('statusBox');
-    box.className = 'status-box visible' + (type !== 'info' ? ' ' + type : '');
-    box.textContent = text;
-}
-
-async function runPipeline() {
-    if (!sourceFile) return updateStatus('Пожалуйста, загрузите исходный документ (Пункт 3)', 'error');
-    if (!extractedData) return updateStatus('Данные ещё не извлечены. Подождите или перезагрузите файл.', 'error');
-
-    const btn = document.getElementById('generateBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<div class="spinner"></div> Генерация документа...';
-
-    try {
-        updateStatus('Формирование DOCX файла...');
-        const blob = buildDOCX(extractedData, selectedProcedure, selectedVariant);
-        const fioSafe = (extractedData.fio || 'Должник').replace(/\s+/g, '_');
-        const varLabel = selectedVariant.toUpperCase();
-        const procLabel = selectedProcedure === 'realizatsia' ? 'Реализация' : 'Реструктуризация';
-        saveAs(blob, `Opr_Prinyatie_${procLabel}_${varLabel}_${fioSafe}.docx`);
-        updateStatus('✅ Документ успешно сформирован и загружается!', 'success');
-    } catch(err) {
-        console.error(err);
-        updateStatus('Ошибка при генерации: ' + err.message, 'error');
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = `<svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg> Сгенерировать Определение о принятии`;
-    }
-}
-
-// =================== DOCX BUILDER (без внешнего шаблона) ===================
-// Строим документ из XML напрямую с нужной структурой
-function buildDOCX(data, procedure, variant) {
-    const variantText = VARIANT_TEXT[procedure][variant];
-    const variantLines = variantText.split('\n');
-
-    // Определяем вводный абзац для процедуры реструктуризации
-    let introLine2;
-    if (procedure === 'realizatsia') {
-        const dateStr = data.decision_date || '__.__.____';
-        introLine2 = `Решением Арбитражного суда Ханты-Мансийского автономного округа – Югры от ${dateStr}`;
-    } else {
-        const dateStr = data.decision_date || '__.__.____';
-        introLine2 = `Определением Арбитражного суда Ханты-Мансийского автономного округа – Югры от ${dateStr}`;
-    }
-
-    const caseNum = data.case_number || '___________';
-    const fioAddr = data.fio ? `${data.fio}, ${data.address || ''}` : '___________';
-    const finMgr = data.fin_manager || '[финансовый управляющий — уточнить]';
-    const creditorBlock = data.creditor_block || '[абзац с кредитором из Решения]';
-    const estabelishBlock = data.ustanovil || '[абзац «установил» из Решения]';
-
-    // Утилита: преобразовать текст в XML параграф с нужным форматированием
-    function xmlEscape(str) {
-        return str
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;');
-    }
-
-    function makePara(text, opts = {}) {
-        const { bold = false, center = false, indent = false, spaceAfter = 120, fontSize = 24 } = opts;
-        const jc = center ? '<w:jc w:val="center"/>' : '<w:jc w:val="both"/>';
-        const indentXml = indent ? '<w:ind w:firstLine="720"/>' : '';
-        const boldXml = bold ? '<w:b/><w:bCs/>' : '';
-        const escaped = xmlEscape(text);
-        return `<w:p>
-  <w:pPr>${jc}${indentXml}<w:spacing w:after="${spaceAfter}"/><w:jc w:val="${center ? 'center' : 'both'}"/></w:pPr>
-  <w:r><w:rPr>${boldXml}<w:sz w:val="${fontSize}"/><w:szCs w:val="${fontSize}"/></w:rPr><w:t xml:space="preserve">${escaped}</w:t></w:r>
-</w:p>`;
-    }
-
-    function makeParaIndent(text, opts = {}) {
-        return makePara(text, { indent: true, ...opts });
-    }
-
-    // Строим параграфы документа
-    const paragraphs = [];
-
-    // Шапка
-    paragraphs.push(makePara('АРБИТРАЖНЫЙ СУД ХАНТЫ-МАНСИЙСКОГО АВТОНОМНОГО ОКРУГА – ЮГРЫ', { bold: true, center: true }));
-    paragraphs.push(makePara('ОПРЕДЕЛЕНИЕ', { bold: true, center: true }));
-    paragraphs.push(makePara('о принятии заявления кредитора о включении в реестр требований кредиторов к производству', { center: true }));
-    paragraphs.push(makePara(`г. Ханты-Мансийск\t\t\t\t\t\t\t\t${data.decision_date || '__.__.__'}`, {}));
-    paragraphs.push(makePara(`Дело № ${caseNum}`, { bold: true }));
-
-    paragraphs.push(makePara(' ', { spaceAfter: 60 }));
-
-    // Вводная часть
-    paragraphs.push(makeParaIndent(`${introLine2} по делу № ${caseNum} введена процедура ${procedure === 'realizatsia' ? 'реализации имущества' : 'реструктуризации долгов'} гражданина в отношении ${fioAddr}.`));
-    paragraphs.push(makeParaIndent(`Финансовым управляющим утверждён ${finMgr}.`));
-    paragraphs.push(makeParaIndent(creditorBlock));
-
-    // Раздел "Установил"
-    paragraphs.push(makePara('Установил:', { bold: false }));
-    paragraphs.push(makeParaIndent(estabelishBlock));
-
-    // Варативный абзац
-    for (const line of variantLines) {
-        if (line.trim()) paragraphs.push(makeParaIndent(line));
-    }
-
-    // Нижняя часть
-    paragraphs.push(makeParaIndent('Руководствуясь статьями 60, 71, 100, 213.8, 213.24 Закона о банкротстве, статьями 184-185, 223 АПК РФ, суд'));
-
-    paragraphs.push(makePara('ОПРЕДЕЛИЛ:', { bold: true }));
-
-    paragraphs.push(makeParaIndent(`Заявление принять к производству. Назначить заседание по рассмотрению требования кредитора.`));
-    paragraphs.push(makeParaIndent('Определение может быть обжаловано в арбитражный суд апелляционной инстанции.'));
-
-    // Финальные подписи
-    paragraphs.push(makePara(' ', { spaceAfter: 60 }));
-    paragraphs.push(makePara('Судья\t\t\t\t\t\t\t\t\t\t\t___________________', {}));
-
-    // Собираем XML документа
-    const bodyXml = paragraphs.join('\n');
-
-    const wordXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:document xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas"
-  xmlns:cx="http://schemas.microsoft.com/office/drawing/2014/chartex"
-  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-  xmlns:aink="http://schemas.microsoft.com/office/drawing/2016/ink"
-  xmlns:am3d="http://schemas.microsoft.com/office/drawing/2017/model3d"
-  xmlns:o="urn:schemas-microsoft-com:office:office"
-  xmlns:oel="http://schemas.microsoft.com/office/2019/extlst"
-  xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
-  xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"
-  xmlns:v="urn:schemas-microsoft-com:vml"
-  xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing"
-  xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
-  xmlns:w10="urn:schemas-microsoft-com:office:word"
-  xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
-  xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml"
-  xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml"
-  xmlns:w16cex="http://schemas.microsoft.com/office/word/2018/wordml/cex"
-  xmlns:w16cid="http://schemas.microsoft.com/office/word/2016/wordml/cid"
-  xmlns:w16="http://schemas.microsoft.com/office/word/2018/wordml"
-  xmlns:w16sdtdh="http://schemas.microsoft.com/office/word/2020/wordml/sdtdatahash"
-  xmlns:w16se="http://schemas.openxmlformats.org/wordprocessingml/2007/wordml"
-  xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup"
-  xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
-  xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml"
-  xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape"
-  mc:Ignorable="w14 w15 w16se w16cid w16 w16cex w16sdtdh wp14">
-<w:body>
-${bodyXml}
-<w:sectPr>
-  <w:pgSz w:w="11906" w:h="16838"/>
-  <w:pgMar w:top="1134" w:right="850" w:bottom="1134" w:left="1701" w:header="708" w:footer="708" w:gutter="0"/>
-</w:sectPr>
-</w:body>
-</w:document>`;
-
-    // Создаем DOCX (ZIP) вручную
-    const zip = new PizZip();
-
-    zip.file('[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
-  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
-  <Default Extension="xml" ContentType="application/xml"/>
-  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
-</Types>`);
-
-    zip.file('_rels/.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
-</Relationships>`);
-
-    zip.file('word/document.xml', wordXml);
-
-    zip.file('word/_rels/document.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-</Relationships>`);
-
-    return zip.generate({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-}
-</script>
+    </script>
 </body>
 </html>

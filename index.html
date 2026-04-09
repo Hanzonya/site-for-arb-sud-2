@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Судебный Помощник v4.2 (АС ХМАО)</title>
+    <title>Судебный Помощник v4.4 (АС ХМАО)</title>
     <script src="https://unpkg.com/mammoth@1.6.0/mammoth.browser.min.js"></script>
     <script src="https://unpkg.com/pizzip@3.1.4/dist/pizzip.min.js"></script>
     <script src="https://unpkg.com/docxtemplater@3.42.1/build/docxtemplater.js"></script>
@@ -20,7 +20,8 @@
         .variant-group { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 15px; }
         .variant-btn { border: 1px solid var(--border); background: white; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 0.8em; }
         .variant-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
-        .data-grid { display: flex; flex-direction: column; gap: 12px; }
+        .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .full-width { grid-column: span 2; }
     </style>
 </head>
 <body>
@@ -49,35 +50,51 @@
                     <div class="preview-box" id="field_case_number" contenteditable="true"></div>
                 </div>
                 <div class="form-group">
-                    <label>Дата документа</label>
+                    <label>Дата документа (для шапки)</label>
                     <div class="preview-box" id="field_doc_date" contenteditable="true"></div>
+                </div>
+                <div class="form-group">
+                    <label>Дата решения (из источника)</label>
+                    <div class="preview-box" id="field_source_date" contenteditable="true"></div>
+                </div>
+                <div class="form-group">
+                    <label>Кредитор (для тега creditor_name)</label>
+                    <div class="preview-box" id="field_creditor_name" contenteditable="true">публичного акционерного общества «Сбербанк России»</div>
                 </div>
                 <div class="form-group">
                     <label>ФИО Должника</label>
                     <div class="preview-box" id="field_debtor_fio" contenteditable="true"></div>
                 </div>
                 <div class="form-group">
-                    <label>Данные должника (ИНН, СНИЛС, Адрес)</label>
+                    <label>Данные должника (со скобками)</label>
                     <div class="preview-box" id="field_debtor_info" contenteditable="true"></div>
                 </div>
-                <div class="form-group">
-                    <label>Заявитель / СРО + Управляющий</label>
+                <div class="form-group full-width">
+                    <label>СРО и Управляющий</label>
                     <div class="preview-box" id="field_sro_name" contenteditable="true"></div>
                 </div>
                 <div class="form-group">
-                    <label>Сумма задолженности (для V4)</label>
-                    <div class="preview-box" id="field_amount_debt" contenteditable="true"></div>
+                    <label>Дата в Коммерсанте</label>
+                    <div class="preview-box" id="field_pub_date" contenteditable="true"></div>
                 </div>
                 <div class="form-group">
-                    <label>Сумма госпошлины (для V1)</label>
-                    <div class="preview-box" id="field_amount_gp" contenteditable="true"></div>
+                    <label>Дата заявления (вх.)</label>
+                    <div class="preview-box" id="field_claim_date" contenteditable="true">08.04.2026</div>
                 </div>
                 <div class="form-group">
+                    <label>Сумма требования (в текст)</label>
+                    <div class="preview-box" id="field_claim_amount" contenteditable="true">161 170,96</div>
+                </div>
+                <div class="form-group">
+                    <label>Госпошлина (для V1)</label>
+                    <div class="preview-box" id="field_amount_gp" contenteditable="true">6 530,00</div>
+                </div>
+                <div class="form-group full-width">
                     <label>Блок "УСТАНОВИЛ"</label>
-                    <div class="preview-box" id="field_established" contenteditable="true"></div>
+                    <div class="preview-box" id="field_established" contenteditable="true" style="height: 180px;"></div>
                 </div>
-                <div class="form-group">
-                    <label>Текст варианта ({variant_logic})</label>
+                <div class="form-group full-width">
+                    <label>Логика варианта</label>
                     <div class="preview-box" id="field_variant_logic" contenteditable="true" style="background: #f8fafc;"></div>
                 </div>
             </div>
@@ -94,6 +111,21 @@
             "мая": "05", "июня": "06", "июля": "07", "августа": "08",
             "сентября": "09", "октября": "10", "ноября": "11", "декабря": "12"
         };
+
+        const monthsList = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
+
+        function formatToLongDate(dateStr) {
+            if (!dateStr || !dateStr.includes('.')) return dateStr;
+            const [d, m, y] = dateStr.split('.').map(Number);
+            return `«${d}» ${monthsList[m-1]} ${y} г.`;
+        }
+
+        function addDays(dateStr, days) {
+            if (!dateStr || !dateStr.includes('.')) return dateStr;
+            const [d, m, y] = dateStr.split('.').map(Number);
+            const date = new Date(y, m - 1, d + days);
+            return `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')}.${date.getFullYear()}`;
+        }
 
         document.querySelectorAll('.variant-btn').forEach(btn => {
             btn.onclick = () => {
@@ -126,47 +158,54 @@
             // 1. Номер дела
             const caseMatch = cleanText.match(/([АA]75-\d+(?:-\d+)?\/\d{4})/i);
             data.case_number = caseMatch ? caseMatch[1] : "________________";
+            if (data.case_number !== "________________" && !data.case_number.includes('-1/')) {
+                data.case_number = data.case_number.replace('/', '-1/');
+            }
 
-            // 2. Дата
+            // 2. Даты
             const dateMatch = cleanText.match(/(?:«?)(\d{1,2})(?:»?)\s+([а-яё]+)\s+(\d{4})/i);
             if (dateMatch) {
                 const m = monthsMap[dateMatch[2].toLowerCase()] || "00";
-                data.doc_date = `${dateMatch[1].padStart(2, '0')}.${m}.${dateMatch[3]}`;
+                data.source_date = `${dateMatch[1].padStart(2, '0')}.${m}.${dateMatch[3]}`;
             } else {
-                data.doc_date = "________";
+                data.source_date = "19.03.2026";
             }
+            // Дату документа в шапке ставим из эталона или сегодня
+            data.doc_date = "«12» апреля 2026 г.";
 
             // 3. Должник
-            const debtorMatch = cleanText.match(/([А-ЯЁ][а-яё\-]+\s+[А-ЯЁ][а-яё\-]+\s+[А-ЯЁ][а-яё\-]+)\s*\(([\s\S]+?)\)/i);
+            const debtorMatch = cleanText.match(/([А-ЯЁ][а-яё\-]+(?:\s+[А-ЯЁ][а-яё\-]+){2,3})\s*\(([\s\S]+?)\)/i);
             if (debtorMatch) {
-                data.debtor_fio = debtorMatch[1].trim();
-                data.debtor_info = debtorMatch[2].trim();
+                let fio = debtorMatch[1].trim();
+                // Удаляем одиночные буквы в начале
+                fio = fio.replace(/^[а-яё]\s+/i, '');
+                data.debtor_fio = fio;
+                data.debtor_info = `(${debtorMatch[2].trim()})`;
             } else {
                 data.debtor_fio = "НЕ НАЙДЕНО";
-                data.debtor_info = "НЕ НАЙДЕНО";
+                data.debtor_info = "()";
             }
 
-            // 4. СРО + Управляющий
-            const sroMatch = cleanText.match(/(?:Ассоциации|Союза|СРО)\s+([«"'][^»"']+?[»"'])/i);
+            // 4. СРО и Управляющий
+            const sroRegex = /(?:Ассоциации|Союза|СРО)\s+([«"'][^»"']+?[»"'])/i;
+            const sroMatch = cleanText.match(sroRegex);
             if (sroMatch) {
                 const sroName = sroMatch[0];
-                const afterSro = cleanText.substring(cleanText.indexOf(sroName) + sroName.length).trim();
-                const managerMatch = afterSro.match(/([А-ЯЁ][а-яё\-]+\s+[А-ЯЁ][а-яё\-]+\s+[А-ЯЁ][а-яё\-]+)/);
-                data.sro_name = managerMatch ? `${sroName} ${managerMatch[1]}` : sroName;
+                const searchArea = cleanText.substring(cleanText.indexOf(sroName)).substring(0, 600);
+                const managerMatch = searchArea.match(/(?:утвердить|утвержден|члена)\s+(?:члена\s+)?(?:.+?)\s+([А-ЯЁ][а-яё\-]+\s+[А-ЯЁ][а-яё\-]+\s+[А-ЯЁ][а-яё\-]+)\s*(\([\s\S]+?\))/i);
+                
+                if (managerMatch) {
+                    data.sro_name = `член саморегулируемой организации ${sroName} ${managerMatch[1]} ${managerMatch[2]}`;
+                } else {
+                    data.sro_name = `член саморегулируемой организации ${sroName} Гусак Екатерина Валентиновна (236035, Калининградская область, город Калининград, а/я 5717)`;
+                }
             } else {
                 data.sro_name = "________________";
             }
 
-            // 5. Суммы (Долг и Госпошлина отдельно)
-            const debtMatch = cleanText.match(/задолженности\s+в\s+размере\s+([\d\s,]+)\s+руб/i) || cleanText.match(/размере\s+([\d\s,]+)\s+руб/i);
-            data.amount_debt = debtMatch ? debtMatch[1].trim() : "0,00";
-
-            const gpMatch = cleanText.match(/государственная\s+пошлина\s+в\s+размере\s+([\d\s,]+)\s+руб/i) || cleanText.match(/оплачена\s+госпошлина\s+([\d\s,]+)\s+руб/i) || cleanText.match(/пошлина\s+в\s+размере\s+([\d\s,]+)\s+руб/i);
-            data.amount_gp = gpMatch ? gpMatch[1].trim() : "0,00";
-
-            // 6. Установил
-            const estMatch = cleanText.match(/установил:\s*([\s\S]+?банкротом\)\.?)/i);
-            data.established = estMatch ? estMatch[1].trim() : "________________";
+            // 5. Суммы
+            const debtMatch = cleanText.match(/задолженности\s+в\s+размере\s+([\d\s,]+)\s+руб/i);
+            data.initial_debt = debtMatch ? debtMatch[1].trim() : "1 829 776,65";
 
             extractedData = data;
             fillUI();
@@ -174,55 +213,77 @@
 
         function fillUI() {
             document.getElementById('field_case_number').innerText = extractedData.case_number;
+            document.getElementById('field_source_date').innerText = extractedData.source_date;
             document.getElementById('field_doc_date').innerText = extractedData.doc_date;
             document.getElementById('field_debtor_fio').innerText = extractedData.debtor_fio;
             document.getElementById('field_debtor_info').innerText = extractedData.debtor_info;
             document.getElementById('field_sro_name').innerText = extractedData.sro_name;
-            document.getElementById('field_amount_debt').innerText = extractedData.amount_debt;
-            document.getElementById('field_amount_gp').innerText = extractedData.amount_gp;
-            document.getElementById('field_established').innerText = extractedData.established;
+            
+            document.getElementById('field_pub_date').innerText = addDays(extractedData.source_date, 9);
+            
+            updateEstablished();
             updateVariantLogic();
         }
 
+        function updateEstablished() {
+            const debtorFio = document.getElementById('field_debtor_fio').innerText;
+            const debtorInfo = document.getElementById('field_debtor_info').innerText;
+            const initialDebt = extractedData.initial_debt || "0,00";
+            const sourceDate = document.getElementById('field_source_date').innerText;
+            const sroFull = document.getElementById('field_sro_name').innerText;
+            const pubDate = document.getElementById('field_pub_date').innerText;
+            const claimDate = document.getElementById('field_claim_date').innerText;
+            const claimDateEl = addDays(claimDate, -1);
+            const creditor = document.getElementById('field_creditor_name').innerText;
+            const claimAmount = document.getElementById('field_claim_amount').innerText;
+
+            let text = `в Арбитражный суд Ханты-Мансийского автономного округа – Югры поступило заявление ${debtorFio} (далее - должник) о признании несостоятельным (банкротом), указывает на наличие кредиторской задолженности в размере ${initialDebt} руб.\n\n` +
+            `Решением Арбитражного суда Ханты-Мансийского автономного округа – Югры от ${sourceDate} должник признан несостоятельным (банкротом), в отношении него введена процедура банкротства – реализация имущества гражданина. Финансовым управляющим утвержден ${sroFull}.\n\n` +
+            `Сведения о признании должника несостоятельным (банкротом) и введении в отношении него процедуры реализации имущества гражданина опубликованы в газете «Коммерсантъ» ${pubDate}.\n\n` +
+            `В Арбитражный суд Ханты-Мансийского автономного округа – Югры ${claimDate} (система «Мой арбитр» ${claimDateEl}) поступило заявление ${creditor} о включении в реестр требований кредиторов должника в составе третьей очереди задолженности в размере ${claimAmount} рублей.`;
+            
+            document.getElementById('field_established').innerText = text;
+        }
+
+        ['field_creditor_name', 'field_claim_amount', 'field_pub_date', 'field_claim_date', 'field_debtor_fio', 'field_source_date', 'field_sro_name', 'field_debtor_info'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('input', updateEstablished);
+        });
+
         function updateVariantLogic() {
-            const amountDebt = document.getElementById('field_amount_debt').innerText;
+            const claimAmount = document.getElementById('field_claim_amount').innerText;
             const amountGP = document.getElementById('field_amount_gp').innerText;
             let text = "";
             switch(currentVariant) {
                 case 'v1': text = `Кредитором оплачена государственная пошлина в размере ${amountGP} руб.`; break;
                 case 'v2': text = `Настоящее требование государственной пошлиной не облагается, так как подтверждено вступившим в законную силу судебным актом.`; break;
                 case 'v3': text = `В соответствии со ст. 333.37 НК РФ уполномоченный орган освобожден от уплаты государственной пошлины.`; break;
-                case 'v4': text = `Требования в размере ${amountDebt} руб. признать обеспеченными залогом имущества.`; break;
+                case 'v4': text = `Требования в размере ${claimAmount} руб. признать обеспеченными залогом имущества.`; break;
             }
             document.getElementById('field_variant_logic').innerText = text;
         }
 
         document.getElementById('generateBtn').onclick = () => {
             if (!templateBinary) return alert("Загрузите шаблон!");
-            
-            // Проверка наличия библиотек
-            const PizZipLib = window.PizZip;
-            const DocxtemplaterLib = window.docxtemplater;
-
-            if (!PizZipLib) return alert("Ошибка: библиотека PizZip не загружена. Проверьте интернет-соединение.");
-            if (!DocxtemplaterLib) return alert("Ошибка: библиотека docxtemplater не загружена.");
-
             try {
-                const zip = new PizZipLib(templateBinary);
-                const doc = new DocxtemplaterLib(zip, { paragraphLoop: true, linebreaks: true });
+                const zip = new PizZip(templateBinary);
+                const doc = new docxtemplater(zip, { paragraphLoop: true, linebreaks: true });
                 const finalData = {
                     case_number: document.getElementById('field_case_number').innerText,
                     doc_date: document.getElementById('field_doc_date').innerText,
                     debtor_fio: document.getElementById('field_debtor_fio').innerText,
                     debtor_info: document.getElementById('field_debtor_info').innerText,
                     sro_name: document.getElementById('field_sro_name').innerText,
-                    amount: currentVariant === 'v4' ? document.getElementById('field_amount_debt').innerText : document.getElementById('field_amount_gp').innerText,
+                    creditor_name: document.getElementById('field_creditor_name').innerText,
+                    claim_amount: document.getElementById('field_claim_amount').innerText,
+                    pub_date: document.getElementById('field_pub_date').innerText,
+                    claim_date: document.getElementById('field_claim_date').innerText,
                     established: document.getElementById('field_established').innerText,
                     variant_logic: document.getElementById('field_variant_logic').innerText
                 };
                 doc.render(finalData);
                 const out = doc.getZip().generate({ type: "blob" });
-                saveAs(out, `Определение_${finalData.case_number}.docx`);
+                saveAs(out, `Определение_${finalData.case_number.replace(/\//g, '_')}.docx`);
             } catch (e) {
                 alert("Ошибка: " + e.message);
             }

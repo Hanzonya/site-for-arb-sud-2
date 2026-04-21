@@ -84,6 +84,18 @@
                     <div class="preview-box" id="field_claim_date" contenteditable="true">08.04.2026</div>
                 </div>
                 <div class="form-group">
+                    <label>Срок рассмотрения +60д (claim_date_1)</label>
+                    <div class="preview-box" id="field_claim_date_1" contenteditable="false" style="background:#f8fafc;color:#475569;"></div>
+                </div>
+                <div class="form-group">
+                    <label>Срок возражений +30д (claim_date_2)</label>
+                    <div class="preview-box" id="field_claim_date_2" contenteditable="false" style="background:#f8fafc;color:#475569;"></div>
+                </div>
+                <div class="form-group">
+                    <label>Срок отзывов +38д (claim_date_3)</label>
+                    <div class="preview-box" id="field_claim_date_3" contenteditable="false" style="background:#f8fafc;color:#475569;"></div>
+                </div>
+                <div class="form-group">
                     <label>Сумма требования (claim_amount)</label>
                     <div class="preview-box" id="field_claim_amount" contenteditable="true">161 170,96</div>
                 </div>
@@ -103,160 +115,183 @@
         </div>
     </div>
 
-    <script>
-        let templateBinary = null;
-        let currentVariant = 'v1';
-        let extractedData = {};
+<script>
+    let templateBinary = null;
+    let currentVariant = 'v1';
+    let extractedData = {};
 
-        const monthsMap = {
-            "января": "01", "февраля": "02", "марта": "03", "апреля": "04",
-            "мая": "05", "июня": "06", "июля": "07", "августа": "08",
-            "сентября": "09", "октября": "10", "ноября": "11", "декабря": "12"
-        };
+    // Инициализация дат при загрузке
+    window.addEventListener('DOMContentLoaded', () => {
+        updateClaimDates();
+    });
 
-        function addDays(dateStr, days) {
-            if (!dateStr || !dateStr.includes('.')) return dateStr;
-            const [d, m, y] = dateStr.split('.').map(Number);
-            const date = new Date(y, m - 1, d + days);
-            return `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')}.${date.getFullYear()}`;
-        }
+    const monthsMap = {
+        "января": "01", "февраля": "02", "марта": "03", "апреля": "04",
+        "мая": "05", "июня": "06", "июля": "07", "августа": "08",
+        "сентября": "09", "октября": "10", "ноября": "11", "декабря": "12"
+    };
 
-        document.querySelectorAll('.variant-btn').forEach(btn => {
-            btn.onclick = () => {
-                document.querySelectorAll('.variant-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                currentVariant = btn.dataset.val;
-                updateVariantLogic();
-            };
-        });
+    function addDays(dateStr, days) {
+        if (!dateStr || !dateStr.includes('.')) return dateStr;
+        const [d, m, y] = dateStr.split('.').map(Number);
+        const date = new Date(y, m - 1, d + days);
+        return `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')}.${date.getFullYear()}`;
+    }
 
-        document.getElementById('templateFile').onchange = (e) => {
-            const reader = new FileReader();
-            reader.onload = (event) => templateBinary = event.target.result;
-            reader.readAsArrayBuffer(e.target.files[0]);
-        };
+    // Вспомогательная функция для чистой выгрузки текста без HTML-мусора
+    function getVal(id) {
+        const el = document.getElementById(id);
+        return el ? el.textContent.trim() : "";
+    }
 
-        document.getElementById('sourceFile').onchange = (e) => {
-            const reader = new FileReader();
-            reader.onload = async (event) => {
-                const result = await mammoth.extractRawText({ arrayBuffer: event.target.result });
-                parseDocument(result.value);
-            };
-            reader.readAsArrayBuffer(e.target.files[0]);
-        };
-
-        function parseDocument(text) {
-            const cleanText = text.replace(/\s+/g, ' ').trim();
-            const data = {};
-
-            const caseMatch = cleanText.match(/([АA]75-\d+(?:-\d+)?\/\d{4})/i);
-            data.case_number = caseMatch ? caseMatch[1] : "________________";
-            if (data.case_number !== "________________" && !data.case_number.includes('-1/')) {
-                data.case_number = data.case_number.replace('/', '-1/');
-            }
-
-            const dateMatch = cleanText.match(/(?:«?)(\d{1,2})(?:»?)\s+([а-яё]+)\s+(\d{4})/i);
-            data.source_date = dateMatch ? `${dateMatch[1].padStart(2, '0')}.${monthsMap[dateMatch[2].toLowerCase()] || "00"}.${dateMatch[3]}` : "19.03.2026";
-
-            const debtorMatch = cleanText.match(/([А-ЯЁ][а-яё\-]+(?:\s+[А-ЯЁ][а-яё\-]+){2,3})\s*\(([\s\S]+?)\)/i);
-            if (debtorMatch) {
-                data.debtor_fio = debtorMatch[1].trim().replace(/^[а-яё]\s+/i, '');
-                data.debtor_info = `(${debtorMatch[2].trim()})`;
-            } else {
-                data.debtor_fio = "НЕ НАЙДЕНО";
-                data.debtor_info = "()";
-            }
-
-            const sroRegex = /(?:Ассоциации|Союза|СРО)\s+([«"'][^»"']+?[»"'])/i;
-            const sroMatch = cleanText.match(sroRegex);
-            if (sroMatch) {
-                const sroName = sroMatch[0];
-                const searchArea = cleanText.substring(cleanText.indexOf(sroName)).substring(0, 600);
-                const managerMatch = searchArea.match(/(?:утвердить|утвержден|члена)\s+(?:члена\s+)?(?:.+?)\s+([А-ЯЁ][а-яё\-]+\s+[А-ЯЁ][а-яё\-]+\s+[А-ЯЁ][а-яё\-]+)\s*(\([\s\S]+?\))/i);
-                // Убираем слово "член" из начала, если оно там есть
-                let mgr = managerMatch ? managerMatch[1] : "Гусак Екатерина Валентиновна";
-                let addr = managerMatch ? managerMatch[2] : "(236035, Калининградская область, город Калининград, а/я 5717)";
-                data.sro_name = `${sroName} ${mgr} ${addr}`;
-            } else {
-                data.sro_name = "________________";
-            }
-
-            const debtMatch = cleanText.match(/задолженности\s+в\s+размере\s+([\d\s,]+)\s+руб/i);
-            const initialDebt = debtMatch ? debtMatch[1].trim() : "1 829 776,65";
-            data.established = `в Арбитражный суд Ханты-Мансийского автономного округа – Югры поступило заявление ${data.debtor_fio} (далее - должник) о признании несостоятельным (банкротом), указывает на наличие кредиторской задолженности в размере ${initialDebt} руб.`;
-
-            extractedData = data;
-            fillUI();
-        }
-
-        function fillUI() {
-            document.getElementById('field_case_number').innerText = extractedData.case_number;
-            document.getElementById('field_source_date').innerText = extractedData.source_date;
-            document.getElementById('field_debtor_fio').innerText = extractedData.debtor_fio;
-            document.getElementById('field_debtor_info').innerText = extractedData.debtor_info;
-            document.getElementById('field_sro_name').innerText = extractedData.sro_name;
-            document.getElementById('field_pub_date').innerText = addDays(extractedData.source_date, 9);
-            document.getElementById('field_established').innerText = extractedData.established;
+    document.querySelectorAll('.variant-btn').forEach(btn => {
+        btn.onclick = () => {
+            document.querySelectorAll('.variant-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentVariant = btn.dataset.val;
             updateVariantLogic();
-        }
-
-        function updateVariantLogic() {
-            const amountGP = document.getElementById('field_amount_gp').innerText;
-            const claimAmount = document.getElementById('field_claim_amount').innerText;
-            let text = "";
-            switch(currentVariant) {
-                case 'v1': text = `Кредитором оплачена государственная пошлина в размере ${amountGP} руб.`; break;
-                case 'v2': text = `Настоящее требование государственной пошлиной не облагается, так как подтверждено вступившим в законную силу судебным актом.`; break;
-                case 'v3': text = `В соответствии со ст. 333.37 НК РФ уполномоченный орган освобожден от уплаты государственной пошлины.`; break;
-                case 'v4': text = `Требования в размере ${claimAmount} руб. признать обеспеченными залогом имущества.`; break;
-            }
-            document.getElementById('field_variant_logic').innerText = text;
-        }
-
-        // Следим за изменениями во всех полях
-        ['field_creditor_name', 'field_claim_amount', 'field_amount_gp', 'field_pub_date', 'field_claim_date', 'field_doc_date', 'field_source_date', 'field_debtor_fio', 'field_sro_name'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.addEventListener('input', () => {
-                updateVariantLogic();
-                // Если меняется дата решения - меняем дату публикации автоматически
-                if (id === 'field_source_date') {
-                    document.getElementById('field_pub_date').innerText = addDays(el.innerText, 9);
-                }
-            });
-        });
-
-        document.getElementById('generateBtn').onclick = () => {
-            if (!templateBinary) return alert("Загрузите шаблон!");
-            try {
-                const zip = new PizZip(templateBinary);
-                const doc = new docxtemplater(zip, { paragraphLoop: true, linebreaks: true });
-                
-                const claimDate = document.getElementById('field_claim_date').innerText;
-                const claimDateEl = addDays(claimDate, -1);
-
-                const finalData = {
-                    case_number: document.getElementById('field_case_number').innerText,
-                    doc_date: document.getElementById('field_doc_date').innerText,
-                    source_date: document.getElementById('field_source_date').innerText,
-                    debtor_fio: document.getElementById('field_debtor_fio').innerText,
-                    debtor_info: document.getElementById('field_debtor_info').innerText,
-                    sro_name: document.getElementById('field_sro_name').innerText,
-                    creditor_name: document.getElementById('field_creditor_name').innerText,
-                    claim_amount: document.getElementById('field_claim_amount').innerText,
-                    pub_date: document.getElementById('field_pub_date').innerText,
-                    claim_date: claimDate,
-                    claim_date_el: claimDateEl,
-                    established: document.getElementById('field_established').innerText,
-                    variant_logic: document.getElementById('field_variant_logic').innerText
-                };
-                
-                doc.render(finalData);
-                const out = doc.getZip().generate({ type: "blob" });
-                saveAs(out, `Определение_${finalData.case_number.replace(/\//g, '_')}.docx`);
-            } catch (e) {
-                alert("Ошибка: " + e.message);
-            }
         };
-    </script>
+    });
+
+    document.getElementById('templateFile').onchange = (e) => {
+        const reader = new FileReader();
+        reader.onload = (event) => templateBinary = event.target.result;
+        reader.readAsArrayBuffer(e.target.files[0]);
+    };
+
+    document.getElementById('sourceFile').onchange = (e) => {
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            const result = await mammoth.extractRawText({ arrayBuffer: event.target.result });
+            parseDocument(result.value);
+        };
+        reader.readAsArrayBuffer(e.target.files[0]);
+    };
+
+    function parseDocument(text) {
+        const cleanText = text.replace(/\s+/g, ' ').trim();
+        const data = {};
+
+        const caseMatch = cleanText.match(/([АA]75-\d+(?:-\d+)?\/\d{4})/i);
+        data.case_number = caseMatch ? caseMatch[1] : "________________";
+        if (data.case_number !== "________________" && !data.case_number.includes('-1/')) {
+            data.case_number = data.case_number.replace('/', '-1/');
+        }
+
+        const dateMatch = cleanText.match(/(?:«?)(\d{1,2})(?:»?)\s+([а-яё]+)\s+(\d{4})/i);
+        data.source_date = dateMatch ? `${dateMatch[1].padStart(2, '0')}.${monthsMap[dateMatch[2].toLowerCase()] || "00"}.${dateMatch[3]}` : "19.03.2026";
+
+        const debtorMatch = cleanText.match(/([А-ЯЁ][а-яё\-]+(?:\s+[А-ЯЁ][а-яё\-]+){2,3})\s*\(([\s\S]+?)\)/i);
+        if (debtorMatch) {
+            data.debtor_fio = debtorMatch[1].trim().replace(/^[а-яё]\s+/i, '');
+            data.debtor_info = `(${debtorMatch[2].trim()})`;
+        } else {
+            data.debtor_fio = "НЕ НАЙДЕНО";
+            data.debtor_info = "()";
+        }
+
+        const sroRegex = /(?:Ассоциации|Союза|СРО)\s+([«"'][^»"']+?[»"'])/i;
+        const sroMatch = cleanText.match(sroRegex);
+        if (sroMatch) {
+            const sroName = sroMatch[0];
+            const searchArea = cleanText.substring(cleanText.indexOf(sroName)).substring(0, 600);
+            const managerMatch = searchArea.match(/(?:утвердить|утвержден|члена)\s+(?:члена\s+)?(?:.+?)\s+([А-ЯЁ][а-яё\-]+\s+[А-ЯЁ][а-яё\-]+\s+[А-ЯЁ][а-яё\-]+)\s*(\([\s\S]+?\))/i);
+            let mgr = managerMatch ? managerMatch[1] : "Гусак Екатерина Валентиновна";
+            let addr = managerMatch ? managerMatch[2] : "(236035, Калининградская область, город Калининград, а/я 5717)";
+            data.sro_name = `${sroName} ${mgr} ${addr}`;
+        } else {
+            data.sro_name = "________________";
+        }
+
+        const debtMatch = cleanText.match(/задолженности\s+в\s+размере\s+([\d\s,]+)\s+руб/i);
+        const initialDebt = debtMatch ? debtMatch[1].trim() : "1 829 776,65";
+        data.established = `в Арбитражный суд Ханты-Мансийского автономного округа – Югры поступило заявление ${data.debtor_fio} (далее - должник) о признании несостоятельным (банкротом), указывает на наличие кредиторской задолженности в размере ${initialDebt} руб.`;
+
+        extractedData = data;
+        fillUI();
+    }
+
+    function fillUI() {
+        document.getElementById('field_case_number').textContent = extractedData.case_number;
+        document.getElementById('field_source_date').textContent = extractedData.source_date;
+        document.getElementById('field_debtor_fio').textContent = extractedData.debtor_fio;
+        document.getElementById('field_debtor_info').textContent = extractedData.debtor_info;
+        document.getElementById('field_sro_name').textContent = extractedData.sro_name;
+        document.getElementById('field_pub_date').textContent = addDays(extractedData.source_date, 9);
+        document.getElementById('field_established').textContent = extractedData.established;
+        updateClaimDates();
+        updateVariantLogic();
+    }
+
+    function updateClaimDates() {
+        const claimDate = getVal('field_claim_date');
+        document.getElementById('field_claim_date_1').textContent = addDays(claimDate, 60);
+        document.getElementById('field_claim_date_2').textContent = addDays(claimDate, 30);
+        document.getElementById('field_claim_date_3').textContent = addDays(claimDate, 38);
+    }
+
+    function updateVariantLogic() {
+        const amountGP = getVal('field_amount_gp');
+        const claimAmount = getVal('field_claim_amount');
+        let text = "";
+        switch(currentVariant) {
+            case 'v1': text = `Кредитором оплачена государственная пошлина в размере ${amountGP} руб.`; break;
+            case 'v2': text = `Настоящее требование государственной пошлиной не облагается, так как подтверждено вступившим в законную силу судебным актом.`; break;
+            case 'v3': text = `В соответствии со ст. 333.37 НК РФ уполномоченный орган освобожден от уплаты государственной пошлины.`; break;
+            case 'v4': text = `Требования в размере ${claimAmount} руб. признать обеспеченными залогом имущества.`; break;
+        }
+        document.getElementById('field_variant_logic').textContent = text;
+    }
+
+    ['field_creditor_name', 'field_claim_amount', 'field_amount_gp', 'field_pub_date', 'field_claim_date', 'field_doc_date', 'field_source_date', 'field_debtor_fio', 'field_sro_name'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', () => {
+            updateVariantLogic();
+            if (id === 'field_source_date') {
+                document.getElementById('field_pub_date').textContent = addDays(el.textContent.trim(), 9);
+            }
+            if (id === 'field_claim_date') {
+                updateClaimDates();
+            }
+        });
+    });
+
+    document.getElementById('generateBtn').onclick = () => {
+        if (!templateBinary) return alert("Загрузите шаблон!");
+        try {
+            const zip = new PizZip(templateBinary);
+            const doc = new docxtemplater(zip, { paragraphLoop: true, linebreaks: true });
+            
+            const claimDate = getVal('field_claim_date');
+            const claimDateEl = addDays(claimDate, -1);
+
+            // Используем getVal для чистой передачи данных
+            const finalData = {
+                case_number: getVal('field_case_number'),
+                doc_date: getVal('field_doc_date'),
+                source_date: getVal('field_source_date'),
+                debtor_fio: getVal('field_debtor_fio'),
+                debtor_info: getVal('field_debtor_info'),
+                sro_name: getVal('field_sro_name'),
+                creditor_name: getVal('field_creditor_name'),
+                claim_amount: getVal('field_claim_amount'),
+                pub_date: getVal('field_pub_date'),
+                claim_date: claimDate,
+                claim_date_el: claimDateEl,
+                claim_date_1: addDays(claimDate, 60),
+                claim_date_2: addDays(claimDate, 30),
+                claim_date_3: addDays(claimDate, 38),
+                established: getVal('field_established'),
+                variant_logic: getVal('field_variant_logic')
+            };
+            
+            doc.render(finalData);
+            const out = doc.getZip().generate({ type: "blob" });
+            saveAs(out, `Определение_${finalData.case_number.replace(/\//g, '_')}.docx`);
+        } catch (e) {
+            alert("Ошибка: " + e.message);
+        }
+    };
+</script>
 </body>
 </html>

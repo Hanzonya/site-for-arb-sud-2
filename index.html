@@ -95,7 +95,7 @@
                     <div class="preview-box" id="field_claim_date_2" contenteditable="false" style="background:#f8fafc;color:#475569;"></div>
                 </div>
                 <div class="form-group">
-                    <label>Срок отзывов +38д (claim_date_3)</label>
+                    <label>Срок отзывов +37д (claim_date_3)</label>
                     <div class="preview-box" id="field_claim_date_3" contenteditable="false" style="background:#f8fafc;color:#475569;"></div>
                 </div>
                 <div class="form-group">
@@ -278,7 +278,7 @@
         const claimDate = getVal('field_claim_date');
         document.getElementById('field_claim_date_1').textContent = addDays(claimDate, 60);
         document.getElementById('field_claim_date_2').textContent = addDays(claimDate, 30);
-        document.getElementById('field_claim_date_3').textContent = addDays(claimDate, 38);
+        document.getElementById('field_claim_date_3').textContent = addDays(claimDate, 37);
     }
 
     function updateVariantLogic() {
@@ -331,7 +331,7 @@
                 claim_date_el: claimDateEl,
                 claim_date_1: addDays(claimDate, 60),
                 claim_date_2: addDays(claimDate, 30),
-                claim_date_3: addDays(claimDate, 38),
+                claim_date_3: addDays(claimDate, 37),
                 established: getVal('field_established'),
                 variant_logic: getVal('field_variant_logic')
             };

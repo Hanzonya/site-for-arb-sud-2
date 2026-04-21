@@ -64,6 +64,16 @@
                 </div>
                 <div class="form-group">
                     <label>Кредитор (creditor_name)</label>
+                    <div style="display:flex; gap:6px; margin-bottom:5px;">
+                        <select id="creditor_type" style="flex:0 0 auto; font-size:0.8em; border:1px solid var(--border); border-radius:4px; padding:4px 6px; background:#fff; color:#0f172a; max-width:220px;">
+                            <option value="публичного акционерного общества">ПАО</option>
+                            <option value="акционерного общества">АО</option>
+                            <option value="общества с ограниченной ответственностью">ООО</option>
+                            <option value="общества с ограниченной ответственностью профессиональная коллекторская организация">ООО ПКО</option>
+                            <option value="Управления Федеральной налоговой службы по Ханты-Мансийскому автономному округу – Югре">УФНС</option>
+                        </select>
+                        <input id="creditor_name_input" type="text" placeholder="Название (без кавычек)" style="flex:1; font-size:0.8em; border:1px solid var(--border); border-radius:4px; padding:4px 8px; outline:none;">
+                    </div>
                     <div class="preview-box" id="field_creditor_name" contenteditable="true">публичного акционерного общества «Сбербанк России»</div>
                 </div>
                 <div class="form-group">
@@ -148,6 +158,12 @@
     // Инициализация дат при загрузке
     window.addEventListener('DOMContentLoaded', () => {
         updateClaimDates();
+
+        // Слушатели для селектора и поля ввода кредитора
+        const creditorType = document.getElementById('creditor_type');
+        const creditorInput = document.getElementById('creditor_name_input');
+        if (creditorType) creditorType.addEventListener('change', updateCreditorField);
+        if (creditorInput) creditorInput.addEventListener('input', updateCreditorField);
     });
 
     const monthsMap = {
@@ -279,6 +295,23 @@
         document.getElementById('field_claim_date_1').textContent = addDays(claimDate, 60);
         document.getElementById('field_claim_date_2').textContent = addDays(claimDate, 30);
         document.getElementById('field_claim_date_3').textContent = addDays(claimDate, 37);
+    }
+
+    // Обновление поля кредитора из селектора + ввода
+    function updateCreditorField() {
+        const typeEl = document.getElementById('creditor_type');
+        const nameEl = document.getElementById('creditor_name_input');
+        const previewEl = document.getElementById('field_creditor_name');
+        if (!typeEl || !nameEl || !previewEl) return;
+        const type = typeEl.value;
+        const name = nameEl.value.trim();
+        // УФНС не требует кавычек и названия
+        if (type.startsWith('Управления')) {
+            previewEl.textContent = type;
+        } else {
+            previewEl.textContent = name ? `${type} «${name}»` : type;
+        }
+        updateVariantLogic();
     }
 
     function updateVariantLogic() {
